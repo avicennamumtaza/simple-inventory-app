@@ -1,0 +1,23 @@
+<%- include('../partials/header') %>
+<form action="/products" method="post">
+    <label for="name">product name</label>
+    <input type="text" name="name" id="name" placeholder="input your product name">
+    <br>
+    <br>
+    <label for="price">product price</label>
+    <input type="number" name="price" id="price" placeholder="input the price of your product">
+    <br>
+    <br>
+    <label for="category">select product category</label>
+    <select name="category" id="category">
+        <% for( category of categories ) { %>
+            <option value="<%= category %>"><%= category %></option>
+        <% } %>
+    </select>
+    <br>
+    <br>
+    <button>SAVE</button>
+</form>
+<br>
+<button><a href="/products">back</a></button>
+<%- include('../partials/footer') %>

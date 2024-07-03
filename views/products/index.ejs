@@ -1,0 +1,34 @@
+<%- include('../partials/header') %>
+<h2><%= category %> <%= title %></h2>
+<button><a href="/products/new">new</a></button>
+<p>
+    filter:
+    <form action="/products" method="get">
+        <select name="category" id="category" onchange="this.form.submit()">
+            <option value="all" <%= !category ? 'selected' : '' %>>all</option>
+            <% for (let c of categories) { %>
+                <option value="<%= c %>" <%= category === c ? 'selected' : '' %>><%= c %></option>
+            <% } %>
+        </select>
+    </form>
+</p>
+<ul>
+    <% for( let product of products ) { %>
+        <li>
+            <h4>
+                <%= product.name %>
+            </h4>
+            <button>
+                <a href="/products/<%= product._id %>">detail</a>
+            </button>
+            <br>
+            <button>
+                <a href="/products/<%= product._id %>/edit">edit</a>
+            </button>
+            <form action="/products/<%= product._id %>?_method=delete" method="post">
+                <button>delete</button>
+            </form>
+        </li>
+        <% } %>
+</ul>
+<%- include('../partials/footer') %>
