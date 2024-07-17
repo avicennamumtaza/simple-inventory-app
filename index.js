@@ -4,6 +4,7 @@ const path = require('path')
 const mongoose = require('mongoose')
 const methodOverride = require('method-override')
 const Product = require('./models/products')
+const AppError = require('./error')
 const categories = ['fruit', 'vegetable', 'dairy']
 
 mongoose.connect('mongodb://localhost:27017/farmdb')
@@ -35,7 +36,7 @@ app.use(methodOverride('_method'))
 // })
 app.get('/products', async (req, res) => {
     const { category } = req.query;
-    console.log(req.query);
+    // console.log(req.query);
 
     let products;
     if (!category || category === 'all') {
@@ -50,6 +51,7 @@ app.get('/products', async (req, res) => {
 
 // NEW PRODUCT
 app.get('/products/new', (req, res) => {
+    // throw new AppError('Not Allowed', 403)
     res.render('products/new', {title: 'new product', categories})
 })
 
@@ -63,21 +65,30 @@ app.post('/products', async (req, res) => {
 })
 
 // SHOW DETAIL PRODUCT
-app.get('/products/:id', async (req, res) => {
+app.get('/products/:id', async (req, res, next) => {
     const {id} = req.params
     // const product = await Product.findOne({_id: id})
     const product = await Product.findById(id)
     // console.log(product)
+    if (!product) {
+        // throw new AppError('Product Not Found!', 404)
+        return next(new AppError('Product Not Found!', 404))
+    }
     res.render('products/show', {product, title: 'detail product'})
 })
 
 // EDIT PRODUCT
-app.get('/products/:id/edit', async (req, res) => {
+app.get('/products/:id/edit', async (req, res, next) => {
     const {id} = req.params
     // const product = await Product.findOne({_id: id})
     const product = await Product.findById(id)
     // console.log(product)
-    res.render('products/edit', {product, title: 'edit product', categories})
+    if (!product) {
+        // throw new AppError('Product Not Found!', 404)
+        next(new AppError('Product Not Found!', 404))
+    } else {
+        res.render('products/edit', {product, title: 'edit product', categories})
+    }
 })
 
 // UPDATING EDITED PRODUCT
@@ -90,14 +101,24 @@ app.put('/products/:id', async (req, res) => {
 })
 
 // DELETING PRODUCT
-app.delete('/products/:id', async (req, res) => {
+app.delete('/products/:id', async (req, res, next) => {
     const {id} = req.params
     const deletedProduct = await Product.findByIdAndDelete(id)
+    if (!deletedProduct) {
+        // throw new AppError('Product Not Found!', 404)
+        return next(new AppError('Product Not Found!', 404))
+    }
     console.log(`${deletedProduct.name} has been deleted.`)
     res.redirect(`/products`)
 })
 
+// ERROR HANDLER
+app.use((err, req, res, next) => {
+    const { status = 500, message = 'Something went wrong!' } = err
+    res.status(status).send(message)
+})
+
 // APP PORT
-app.listen(8080, () => {
-    console.log('listening on port 8080...')
+app.listen(8090, () => {
+    console.log('listening on port 8090...')
 })
