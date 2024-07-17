@@ -18,8 +18,15 @@ mongoose.connect('mongodb://localhost:27017/farmdb')
 
 app.set('views', path.join(__dirname, 'views'))
 app.set('view engine', 'ejs')
-app.use(express.urlencoded({extended: true}))
+app.use(express.urlencoded({ extended: true }))
 app.use(methodOverride('_method'))
+
+// TRY CATCH SIMPLIFY
+function wrapAsync(fn) {
+    return function (req, res, next) {
+        fn(req, res, next).catch(e => next(e))
+    }
+}
 
 // ALL PRODUCTS
 // app.get('/products', async (req, res) => {
@@ -34,85 +41,92 @@ app.use(methodOverride('_method'))
 //     }
 //     // console.log(products)
 // })
-app.get('/products', async (req, res) => {
+app.get('/products', wrapAsync(async (req, res, next) => {
     const { category } = req.query;
     // console.log(req.query);
-
     let products;
     if (!category || category === 'all') {
         products = await Product.find({});
     } else {
         products = await Product.find({ category });
     }
-
-    res.render('products/index', { products, title: 'products', category, categories});
-});
+    res.render('products/index', { products, title: 'products', category, categories });
+}))
 
 
 // NEW PRODUCT
 app.get('/products/new', (req, res) => {
     // throw new AppError('Not Allowed', 403)
-    res.render('products/new', {title: 'new product', categories})
+    res.render('products/new', { title: 'new product', categories })
 })
 
 // SAVING NEW PRODUCT
-app.post('/products', async (req, res) => {
+app.post('/products', wrapAsync(async (req, res, next) => {
     // const {name, price, category} = req.body
     const newProduct = new Product(req.body)
     await newProduct.save()
     console.log(`${newProduct.name} has been saved.`)
     res.redirect(`/products/${newProduct._id}`)
-})
+}))
 
 // SHOW DETAIL PRODUCT
-app.get('/products/:id', async (req, res, next) => {
-    const {id} = req.params
+app.get('/products/:id', wrapAsync(async (req, res, next) => {
+    const { id } = req.params
     // const product = await Product.findOne({_id: id})
     const product = await Product.findById(id)
     // console.log(product)
     if (!product) {
         // throw new AppError('Product Not Found!', 404)
-        return next(new AppError('Product Not Found!', 404))
+        throw new AppError('Product Not Found!', 404)
     }
-    res.render('products/show', {product, title: 'detail product'})
-})
+    res.render('products/show', { product, title: 'detail product' })
+}))
 
 // EDIT PRODUCT
-app.get('/products/:id/edit', async (req, res, next) => {
-    const {id} = req.params
+app.get('/products/:id/edit', wrapAsync(async (req, res, next) => {
+    const { id } = req.params
     // const product = await Product.findOne({_id: id})
     const product = await Product.findById(id)
     // console.log(product)
     if (!product) {
         // throw new AppError('Product Not Found!', 404)
-        next(new AppError('Product Not Found!', 404))
+        throw new AppError('Product Not Found!', 404)
     } else {
-        res.render('products/edit', {product, title: 'edit product', categories})
+        res.render('products/edit', { product, title: 'edit product', categories })
     }
-})
+}))
 
 // UPDATING EDITED PRODUCT
-app.put('/products/:id', async (req, res) => {
-    const {id} = req.params
+app.put('/products/:id', wrapAsync(async (req, res, next) => {
+    const { id } = req.params
     // const {name, price, category} = req.body
-    const updatedProduct = await Product.findByIdAndUpdate(id, req.body, {runValidators: true, new: true})
+    const updatedProduct = await Product.findByIdAndUpdate(id, req.body, { runValidators: true, new: true })
     console.log(`${updatedProduct.name} has been updated.`)
     res.redirect(`/products/${updatedProduct._id}`)
-})
+}))
 
 // DELETING PRODUCT
-app.delete('/products/:id', async (req, res, next) => {
-    const {id} = req.params
+app.delete('/products/:id', wrapAsync(async (req, res, next) => {
+    const { id } = req.params
     const deletedProduct = await Product.findByIdAndDelete(id)
     if (!deletedProduct) {
         // throw new AppError('Product Not Found!', 404)
-        return next(new AppError('Product Not Found!', 404))
+        throw new AppError('Product Not Found!', 404)
     }
     console.log(`${deletedProduct.name} has been deleted.`)
     res.redirect(`/products`)
-})
+}))
 
 // ERROR HANDLER
+const handleValidationError = err => {
+    // console.dir(err)
+    return new AppError(`Validation Failed! ${err.message}`, 400)
+}
+app.use((err, req, res, next) => {
+    console.log(err.name) // different error type from mongo
+    if (err.name === 'ValidationError') err = handleValidationError(err)
+    next(err)
+})
 app.use((err, req, res, next) => {
     const { status = 500, message = 'Something went wrong!' } = err
     res.status(status).send(message)
