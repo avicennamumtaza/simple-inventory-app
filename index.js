@@ -1,13 +1,16 @@
 const express = require('express')
 const app = express()
 const path = require('path')
-const mongoose = require('mongoose')
-const methodOverride = require('method-override')
-const Product = require('./models/products')
+const morgan = require('morgan')
 const AppError = require('./error')
+const mongoose = require('mongoose')
+const Product = require('./models/products')
+const Supplier = require('./models/suppliers')
+const methodOverride = require('method-override')
 const categories = ['fruit', 'vegetable', 'dairy']
+const cities = ['malang', 'surabaya', 'pasuruan', 'sidoarjo']
 
-mongoose.connect('mongodb://localhost:27017/farmdb')
+mongoose.connect('mongodb://localhost:27017/carrefour')
     .then(() => {
         console.log('database connected successfully.')
     })
@@ -18,6 +21,7 @@ mongoose.connect('mongodb://localhost:27017/farmdb')
 
 app.set('views', path.join(__dirname, 'views'))
 app.set('view engine', 'ejs')
+app.use(morgan('dev'))
 app.use(express.urlencoded({ extended: true }))
 app.use(methodOverride('_method'))
 
@@ -27,6 +31,89 @@ function wrapAsync(fn) {
         fn(req, res, next).catch(e => next(e))
     }
 }
+
+// ======================
+// == SUPPLIERS ROUTES ==
+// ======================
+
+// ALL SUPPLIERS
+app.get('/suppliers', async(req, res) => {
+    const { city } = req.query;
+    // console.log(req.query);
+    let suppliers;
+    if (!city || city === 'all') {
+        suppliers = await Supplier.find({});
+    } else {
+        suppliers = await Supplier.find({ city });
+    }
+    res.render('suppliers/index', {suppliers, city, cities, title: 'suppliers data'.toUpperCase()})
+})
+
+// CREATING NEW SUPPLIER
+app.get('/suppliers/new', (req, res) => {
+    res.render('suppliers/new', {cities, title: 'create supplier'.toUpperCase()})
+})
+
+// SAVING CREATED SUPPLIER
+app.post('/suppliers', async(req, res) => {
+    // res.send(req.body)
+    const newSupplier = new Supplier(req.body)
+    await newSupplier.save()
+    res.redirect('/suppliers')
+})
+
+// SHOWING SUPPLIER DETAIL
+app.get('/suppliers/:id', async(req, res) => {
+    // const {id} = req.params
+    const showingSupplier = await Supplier.findById(req.params.id).populate('products')
+    // console.log(showingSupplier)
+    res.render('suppliers/show', {...showingSupplier.toObject(), title: 'supplier detail'.toUpperCase()})
+})
+
+// ADDING SUPPLIER'S PRODUCT
+app.get('/suppliers/:supplier_id/products/new', async(req, res) => {
+    const { supplier_id } = req.params
+    const supplier = await Supplier.findById(supplier_id)
+    res.render('products/new', {categories, supplier, title: 'add product'})
+})
+
+// SAVING ADDED SUPPLIER'S PRODUCT
+app.post('/suppliers/:supplier_id/products', async(req, res) => {
+    const { supplier_id } = req.params
+    const supplierFound = await Supplier.findById(supplier_id)
+    const { name, price, category } = req.body
+    const newProduct = new Product({name, price, category})
+    supplierFound.products.push(newProduct)
+    newProduct.supplier = supplierFound
+    await supplierFound.save()
+    await newProduct.save()
+    // res.send(`${supplierFound} ${newProduct}`)
+    res.redirect(`/suppliers/${supplierFound._id}`)
+})
+
+// EDITING SUPPLIER
+app.get('/suppliers/:id/edit', async(req, res) => {
+    const editingSupplier = await Supplier.findById(req.params.id)
+    res.render('suppliers/edit', {...editingSupplier.toObject(), cities, title: 'edit supplier'.toUpperCase()})
+})
+
+// UPDATING EDITED SUPPLIER
+app.put('/suppliers/:id', async(req, res) => {
+    const updatingSupplier = await Supplier.findByIdAndUpdate(req.params.id, req.body, { runValidators: true, new: true })
+    res.redirect(`/suppliers/${updatingSupplier._id}`)
+})
+
+// DELETING SUPPLIER
+app.delete('/suppliers/:id', async(req, res) => {
+    const deletingSupplier = await Supplier.findByIdAndDelete(req.params.id)
+    res.redirect('/suppliers')
+})
+
+
+
+// =====================
+// == PRODUCTS ROUTES ==
+// =====================
 
 // ALL PRODUCTS
 // app.get('/products', async (req, res) => {
@@ -53,14 +140,13 @@ app.get('/products', wrapAsync(async (req, res, next) => {
     res.render('products/index', { products, title: 'products', category, categories });
 }))
 
-
-// NEW PRODUCT
+// CREATING NEW PRODUCT
 app.get('/products/new', (req, res) => {
     // throw new AppError('Not Allowed', 403)
     res.render('products/new', { title: 'new product', categories })
 })
 
-// SAVING NEW PRODUCT
+// SAVING CREATED PRODUCT
 app.post('/products', wrapAsync(async (req, res, next) => {
     // const {name, price, category} = req.body
     const newProduct = new Product(req.body)
@@ -69,11 +155,11 @@ app.post('/products', wrapAsync(async (req, res, next) => {
     res.redirect(`/products/${newProduct._id}`)
 }))
 
-// SHOW DETAIL PRODUCT
+// SHOWING PRODUCT DETAIL
 app.get('/products/:id', wrapAsync(async (req, res, next) => {
     const { id } = req.params
     // const product = await Product.findOne({_id: id})
-    const product = await Product.findById(id)
+    const product = await Product.findById(id).populate('supplier', 'name')
     // console.log(product)
     if (!product) {
         // throw new AppError('Product Not Found!', 404)
@@ -82,7 +168,7 @@ app.get('/products/:id', wrapAsync(async (req, res, next) => {
     res.render('products/show', { product, title: 'detail product' })
 }))
 
-// EDIT PRODUCT
+// EDITING PRODUCT
 app.get('/products/:id/edit', wrapAsync(async (req, res, next) => {
     const { id } = req.params
     // const product = await Product.findOne({_id: id})
@@ -108,13 +194,13 @@ app.put('/products/:id', wrapAsync(async (req, res, next) => {
 // DELETING PRODUCT
 app.delete('/products/:id', wrapAsync(async (req, res, next) => {
     const { id } = req.params
-    const deletedProduct = await Product.findByIdAndDelete(id)
+    const deletedProduct = await Product.findByIdAndDelete(id).populate('supplier', '_id')
     if (!deletedProduct) {
         // throw new AppError('Product Not Found!', 404)
         throw new AppError('Product Not Found!', 404)
     }
     console.log(`${deletedProduct.name} has been deleted.`)
-    res.redirect(`/products`)
+    res.redirect(`/suppliers/${deletedProduct.supplier._id}`)
 }))
 
 // ERROR HANDLER

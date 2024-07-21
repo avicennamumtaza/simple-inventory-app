@@ -1,5 +1,6 @@
 <%- include('../partials/header') %>
-<form action="/products" method="post">
+<h3><%= supplier.name %></h3>
+<form action="/suppliers/<%= supplier._id %>/products" method="post">
     <label for="name">product name</label>
     <input type="text" name="name" id="name" placeholder="input your product name">
     <br>
@@ -19,5 +20,5 @@
     <button>SAVE</button>
 </form>
 <br>
-<button><a href="/products">back</a></button>
+<button><a href="/suppliers/<%= supplier._id %>">back</a></button>
 <%- include('../partials/footer') %>

@@ -2,5 +2,13 @@
 <h2><%= product.name %></h2>
 <h4>Price: Rp.<%= product.price %></h4>
 <h4>Category: <%= product.category %></h4>
-<button><a href="/products">back</a></button>
+<h4>Supplier: <a href="/suppliers/<%= product.supplier._id %>"><%= product.supplier.name %></a></h4>
+<button>
+    <a href="/products/<%= product._id %>/edit">edit</a>
+</button>
+<form action="/products/<%= product._id %>?_method=delete" method="post">
+    <button>delete</button>
+</form>
+<br>
+<button><a href="/suppliers/<%= product.supplier._id %>">back</a></button>
 <%- include('../partials/footer') %>

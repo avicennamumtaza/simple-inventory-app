@@ -1,0 +1,33 @@
+<!-- layout('partials/boilerplate') %> -->
+<h2><%= city %> <%= title %></h2>
+<button><a href="/suppliers/new">new</a></button>
+<p>
+    filter:
+    <form action="/suppliers" method="get">
+        <select name="city" id="city" onchange="this.form.submit()">
+            <option value="all" <%= !city ? 'selected' : '' %>>all</option>
+            <% for (let c of cities) { %>
+                <option value="<%= c %>" <%= city === c ? 'selected' : '' %>><%= c %></option>
+            <% } %>
+        </select>
+    </form>
+</p>
+<ul>
+    <% for( let supplier of suppliers ) { %>
+        <li>
+            <h4>
+                <%= supplier.name %>
+            </h4>
+            <button>
+                <a href="/suppliers/<%= supplier._id %>">detail</a>
+            </button>
+            <br>
+            <button>
+                <a href="/suppliers/<%= supplier._id %>/edit">edit</a>
+            </button>
+            <form action="/suppliers/<%= supplier._id %>?_method=delete" method="post">
+                <button>delete</button>
+            </form>
+        </li>
+    <% } %>
+</ul>

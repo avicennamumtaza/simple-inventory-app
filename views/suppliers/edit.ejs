@@ -1,0 +1,22 @@
+<!-- layout('partials/boilerplate') %> -->
+<form action="/suppliers/<%= _id %>?_method=put" method="post">
+    <label for="name">supplier name</label>
+    <input type="text" name="name" id="name" value="<%= name %>" placeholder="input your supplier name">
+    <br>
+    <br>
+    <label for="contact">supplier contact</label>
+    <input type="email" name="contact" id="contact" value="<%= contact %>" placeholder="input the email of your supplier">
+    <br>
+    <br>
+    <label for="city">select supplier city</label>
+    <select name="city" id="city">
+        <% for( city of cities ) { %>
+            <option value="<%= city %>" <%= city ===  city ? 'selected' : '' %>><%= city %></option>
+        <% } %>
+    </select>
+    <br>
+    <br>
+    <button>UPDATE</button>
+</form>
+<br>
+<button><a href="/suppliers">back</a></button>

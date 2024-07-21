@@ -1,0 +1,12 @@
+<!-- layout('partials/boilerplate') %> -->
+<h2><%= name %></h2>
+<h4>contact  : Rp.<%= contact %></h4>
+<h4>address  : <%= city %></h4>
+<h4>products :</h4>
+<ul>
+    <% for(let product of products) { %>
+        <li><a href="/products/<%= product._id %>"><%= product.name %></a></li>
+    <% } %>
+</ul>
+<button><a href="/suppliers">back</a></button>
+<button><a href="/suppliers/<%= _id %>/products/new">add product</a></button>
