@@ -4,8 +4,9 @@ const path = require('path')
 const morgan = require('morgan')
 const mongoose = require('mongoose')
 const methodOverride = require('method-override')
-const productsRoute = require('./routes/products')
-const suppliersRoute = require('./routes/suppliers')
+const adminRoutes = require('./routes/admin')
+const productRoutes = require('./routes/products')
+const supplierRoutes = require('./routes/suppliers')
 
 mongoose.connect('mongodb://localhost:27017/carrefour')
     .then(() => {
@@ -22,8 +23,9 @@ app.use(morgan('dev'))
 app.use(express.urlencoded({ extended: true }))
 app.use(methodOverride('_method'))
 
-app.use('/products', productsRoute)
-app.use('/suppliers', suppliersRoute)
+app.use('/products', productRoutes)
+app.use('/suppliers', supplierRoutes)
+app.use('/admin', adminRoutes) // example middleware for check isAdmin
 
 
 
